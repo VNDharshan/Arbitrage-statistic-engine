@@ -1,0 +1,5 @@
+coin_y,coin_x,return_correlation,residual_adf_pvalue,same_cluster
+solana,ethereum,0.8809999614045808,0.03372271130538258,True
+binancecoin,bitcoin,0.8200070327020564,0.16566411693070826,True
+ripple,ethereum,0.8224989479878811,0.3828165823706607,True
+ripple,solana,0.8273612195119451,0.6850979819891061,True

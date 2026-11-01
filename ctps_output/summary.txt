@@ -1,0 +1,19 @@
+CTPS - CoinGecko Statistical Arbitrage Backtest
+================================================
+Y coin: solana
+X coin: ethereum
+Observations: 277
+ADF p-value: 0.255441
+ADF gate passed: False
+OU half-life (approx. days): 190.568
+Total return: 0.000%
+Annualized Sharpe (approx.): 0.000
+Maximum drawdown: 0.000%
+Position changes: 0
+Fee per leg: 0.00100
+Slippage per leg: 0.00050
+
+Research/backtesting only. No live orders are placed.
+Backtest returns, hedge P&L, fees and slippage are approximations.
+Full-sample pair selection and ADF testing can introduce selection bias.
+Use walk-forward and out-of-sample tests before drawing conclusions.

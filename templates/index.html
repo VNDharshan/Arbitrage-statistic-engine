@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>CTPS | Statistical Arbitrage Research</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">C</div><div><b>CTPS</b><small>QUANT RESEARCH ENGINE</small></div></div>
+    <div class="nav-label">WORKSPACE</div><a class="nav active">▦ &nbsp; Overview</a><a class="nav">⌁ &nbsp; Pair analysis</a><a class="nav">◷ &nbsp; Backtesting</a>
+    <div class="side-note"><span class="live-dot"></span> LOCAL RESEARCH MODE<br><small>No live orders or exchange connection</small></div>
+    <div class="sidebar-foot">AMRITA · AI & DS / QT<br><small>CTPS academic project</small></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><div class="eyebrow">QUANTITATIVE RESEARCH / DASHBOARD</div><h1>Statistical Arbitrage Engine</h1><p>Dynamic hedge ratio · Cointegration screening · Z-score mean reversion</p></div><div class="status"><span class="live-dot"></span> HISTORICAL DATA ONLY</div></header>
+    <section class="notice"><b>Research disclaimer</b><span>Historical backtesting only. Metrics are approximate, not investment advice or proof of future performance. No live trading is implemented.</span></section>
+    <section class="grid top-grid">
+      <div class="panel controls">
+        <div class="panel-head"><div><div class="eyebrow">CONFIGURATION</div><h2>Run a backtest</h2></div><span class="step">01 / SETUP</span></div>
+        <label>CoinGecko coin IDs <small>space-separated</small></label><input id="coins" value="bitcoin ethereum binancecoin solana ripple cardano">
+        <div class="form-grid">
+          <div><label>History (days)</label><input id="days" type="number" min="90" max="3650" value="365"></div>
+          <div><label>Hedge window</label><input id="hedge" type="number" min="10" value="60"></div>
+          <div><label>Z-score window</label><input id="zwindow" type="number" min="5" value="30"></div>
+          <div><label>Entry threshold</label><input id="entry" type="number" step="0.1" value="2"></div>
+          <div><label>Exit threshold</label><input id="exit" type="number" step="0.1" value="0.5"></div>
+          <div><label>ADF cutoff</label><input id="adf" type="number" step="0.01" value="0.05"></div>
+          <div><label>Fee / leg</label><input id="fee" type="number" step="0.0001" value="0.001"></div>
+          <div><label>Slippage / leg</label><input id="slippage" type="number" step="0.0001" value="0.0005"></div>
+          <div><label>Min. return correlation</label><input id="corr" type="number" step="0.05" value="0.5"></div>
+        </div>
+        <button id="runBtn" onclick="runBacktest()">▶ &nbsp; Run historical backtest</button>
+        <div id="runState" class="run-state">Waiting for configuration.</div>
+      </div>
+      <div class="panel methodology">
+        <div class="eyebrow">PIPELINE</div><h2>Model workflow</h2>
+        <div class="pipeline"><div class="pipe-num">01</div><div><b>Market data</b><small>CoinGecko historical daily prices</small></div></div>
+        <div class="pipeline"><div class="pipe-num">02</div><div><b>Candidate screening</b><small>Return correlation + K-means grouping</small></div></div>
+        <div class="pipeline"><div class="pipe-num">03</div><div><b>Spread modelling</b><small>Rolling OLS hedge ratio + ADF test</small></div></div>
+        <div class="pipeline"><div class="pipe-num">04</div><div><b>Signal & evaluation</b><small>Z-score state machine + estimated costs</small></div></div>
+        <div class="api-note"><b>API key security</b><p>Set <code>COINGECKO_API_KEY</code> in PowerShell before launching the app. The key is not entered into or displayed by this page.</p></div>
+      </div>
+    </section>
+    <section class="metrics" id="metrics">
+      <div class="metric"><span>SELECTED PAIR</span><strong id="mPair">—</strong><small>Y against X</small></div>
+      <div class="metric"><span>TOTAL RETURN</span><strong id="mReturn">—</strong><small>After estimated costs</small></div>
+      <div class="metric"><span>SHARPE (APPROX.)</span><strong id="mSharpe">—</strong><small>Annualized · 365 days</small></div>
+      <div class="metric"><span>MAX DRAWDOWN</span><strong id="mDD">—</strong><small>Peak-to-trough</small></div>
+      <div class="metric"><span>ADF P-VALUE</span><strong id="mAdf">—</strong><small id="mGate">Gate not evaluated</small></div>
+    </section>
+    <section class="grid chart-grid">
+      <div class="panel"><div class="panel-head"><div><div class="eyebrow">PERFORMANCE</div><h2>Equity curve</h2></div><span class="legend-dot">● Growth of 1 unit</span></div><img id="equityImg" class="plot" alt="Equity curve will appear after a run" hidden><div id="equityEmpty" class="empty">Run a backtest to render the equity curve.</div></div>
+      <div class="panel"><div class="panel-head"><div><div class="eyebrow">SIGNAL DIAGNOSTICS</div><h2>Spread Z-score</h2></div><span class="legend-dot purple">● Rolling Z-score</span></div><img id="zImg" class="plot" alt="Z-score chart will appear after a run" hidden><div id="zEmpty" class="empty">Z-score chart will appear here.</div></div>
+    </section>
+    <section class="panel table-panel"><div class="panel-head"><div><div class="eyebrow">CANDIDATE SCREENING</div><h2>Pair ranking</h2></div><span class="step">02 / ANALYSIS</span></div><div class="table-wrap"><table><thead><tr><th>PAIR (Y / X)</th><th>RETURN CORRELATION</th><th>RESIDUAL ADF P-VALUE</th><th>CLUSTER MATCH</th></tr></thead><tbody id="ranking"><tr><td colspan="4" class="empty-cell">No pair results yet.</td></tr></tbody></table></div></section>
+    <section class="panel log-panel"><div class="panel-head"><div><div class="eyebrow">EXECUTION LOG</div><h2>Run details</h2></div><div class="downloads" id="downloads" hidden><a href="/api/file/backtest.csv">Backtest CSV</a><a href="/api/file/pair_ranking.csv">Pair ranking CSV</a><a href="/api/file/summary.txt">Summary TXT</a><a href="/api/file/prices.csv">Prices CSV</a></div></div><pre id="log">The backend log will appear here after execution.</pre><div id="warning" class="warning" hidden></div></section>
+    <footer>CTPS · Statistical Arbitrage Engine <span>Built for academic research · No live execution</span></footer>
+  </main>
+</div>
+<script>
+async function runBacktest(){
+ const btn=document.getElementById('runBtn'), state=document.getElementById('runState');
+ const payload={coins:document.getElementById('coins').value.trim().split(/\s+/),days:+days.value,hedge_window:+hedge.value,z_window:+zwindow.value,entry_z:+entry.value,exit_z:+exit.value,adf_cutoff:+adf.value,fee:+fee.value,slippage:+slippage.value,min_correlation:+corr.value};
+ btn.disabled=true;btn.textContent='Running…';state.textContent='Downloading historical prices and calculating model…';state.className='run-state busy';
+ document.getElementById('warning').hidden=true;
+ try{
+  const res=await fetch('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});const data=await res.json();
+  document.getElementById('log').textContent=(data.log||'')+(data.error?'\nERROR: '+data.error:'');
+  if(!res.ok||!data.ok)throw new Error(data.error||'Backtest failed');
+  const s=data.summary;document.getElementById('mPair').textContent=s.coin_y.toUpperCase()+' / '+s.coin_x.toUpperCase();
+  document.getElementById('mReturn').textContent=Number(s.total_return_pct).toFixed(2)+'%';document.getElementById('mReturn').className=s.total_return_pct>=0?'positive':'negative';
+  document.getElementById('mSharpe').textContent=Number(s.annualized_sharpe_approx).toFixed(3);document.getElementById('mDD').textContent=Number(s.max_drawdown_pct).toFixed(2)+'%';document.getElementById('mAdf').textContent=Number(s.adf_pvalue).toFixed(4);document.getElementById('mGate').textContent=s.adf_gate_passed?'ADF gate passed':'ADF gate failed';
+  document.getElementById('equityImg').src='/api/file/equity_curve.png?t='+Date.now();document.getElementById('equityImg').hidden=false;document.getElementById('equityEmpty').hidden=true;
+  document.getElementById('zImg').src='/api/file/zscore.png?t='+Date.now();document.getElementById('zImg').hidden=false;document.getElementById('zEmpty').hidden=true;
+  document.getElementById('ranking').innerHTML=data.ranking.map(r=>`<tr><td><b>${r.coin_y.toUpperCase()} / ${r.coin_x.toUpperCase()}</b></td><td>${Number(r.return_correlation).toFixed(4)}</td><td>${Number(r.residual_adf_pvalue).toFixed(5)}</td><td>${r.same_cluster?'Yes':'No'}</td></tr>`).join('');
+  document.getElementById('warning').textContent=data.warning;document.getElementById('warning').hidden=false;document.getElementById('downloads').hidden=false;
+  state.textContent='Backtest completed. Review the diagnostics and limitations below.';state.className='run-state success';
+ }catch(e){state.textContent=e.message;state.className='run-state error';}
+ finally{btn.disabled=false;btn.textContent='▶  Run historical backtest';}
+}
+</script>
+</body></html>
